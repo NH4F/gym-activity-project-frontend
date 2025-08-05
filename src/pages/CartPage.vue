@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  <h1>购物车</h1>
+  <h1>订单管理</h1>
 </template>
 
 <style scoped>

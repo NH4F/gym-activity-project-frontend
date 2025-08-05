@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  <h1>番茄书城</h1>
+  <h1>体育活动室</h1>
 </template>
 
 <style scoped>
