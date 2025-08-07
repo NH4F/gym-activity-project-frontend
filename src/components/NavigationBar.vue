@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from "vue";
 import { ElMenu, ElMenuItem } from "element-plus";
-import { HomeFilled, ShoppingCartFull, Management, UserFilled } from "@element-plus/icons-vue";
+import { HomeFilled, ShoppingCartFull,Basketball, Management, UserFilled } from "@element-plus/icons-vue";
 
 // 计算属性：检查用户是否为管理员
 const isAdmin = computed(() => {
@@ -21,17 +21,17 @@ const isAdmin = computed(() => {
         <el-icon><HomeFilled /></el-icon>
         活动列表
       </el-menu-item>
-      <el-menu-item index="/cart">
-        <el-icon><ShoppingCartFull /></el-icon>
-        订单管理
-      </el-menu-item>
       <el-menu-item v-if="isAdmin" index="/manageActivity">
         <el-icon><Management /></el-icon>
         活动管理
       </el-menu-item>
       <el-menu-item index="/myActivity">
-        <el-icon><UserFilled /></el-icon>
+        <el-icon><Basketball /></el-icon>
         我的活动
+      </el-menu-item>
+      <el-menu-item index="/order">
+        <el-icon><ShoppingCartFull /></el-icon>
+        历史订单
       </el-menu-item>
       <el-menu-item index="/user/profile">
         <el-icon><UserFilled /></el-icon>

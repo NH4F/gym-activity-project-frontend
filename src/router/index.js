@@ -6,6 +6,7 @@ import UserProfilePage from '../pages/User/userInfo.vue';
 import ManageActivityPage from '../pages/Activity/manageActivity.vue';
 import ActivityDetailPage from '../pages/Activity/activityDetail.vue';
 import MyActivityPage from '../pages/Activity/myActivity.vue';
+import MyOrderPage from '../pages/Order/myOrder.vue';
 
 const routes = [
     {
@@ -78,6 +79,16 @@ const routes = [
         meta: {
             showNav: true,
             title: '我的活动',
+            requiresAuth: true
+        }
+    },
+    {
+        path: "/order",
+        name: "order",
+        component: MyOrderPage,
+        meta: {
+            showNav: true,
+            title: '我的订单',
             requiresAuth: true
         }
     }

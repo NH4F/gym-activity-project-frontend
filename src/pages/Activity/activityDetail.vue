@@ -90,7 +90,7 @@ const handleRegistration = async () => {
     const registrationData = {
       userId: Number(userId),
       activityId: activity.value.id,
-      status: 'registered',
+      status: 'unsettled', // 默认状态为未结算
       registrationTime: new Date().toISOString(),
     };
 
