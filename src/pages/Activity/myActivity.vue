@@ -1,94 +1,118 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { getActivities, searchActivities, ActivityVO } from '@/api/activity'; // 假设已存在 activity.ts 文件
-import { ElMessage } from 'element-plus';
-import { Search } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import {
+  getPersonalRegistrations,
+  cancelRegistration,
+  RegistrationVO,
+} from '@/api/registration';
+import {
+  getActivityDetails,
+  ActivityVO,
+} from '@/api/activity';
+import {
+  Location,
+  Calendar,
+  Money,
+  User,
+  Back,
+} from '@element-plus/icons-vue';
 
 const router = useRouter();
+const registrations = ref<RegistrationVO[]>([]);
 const activities = ref<ActivityVO[]>([]);
-const searchKeyword = ref('');
 const isLoading = ref(true);
 const error = ref<string | null>(null);
 
-// 获取所有活动列表
-const fetchActivities = async () => {
+const fetchMyActivities = async () => {
   isLoading.value = true;
   error.value = null;
+  const userId = sessionStorage.getItem('userId');
+
+  if (!userId) {
+    ElMessage.warning('请先登录');
+    router.push('/login');
+    return;
+  }
+
   try {
-    const res = await getActivities();
+    const res = await getPersonalRegistrations(Number(userId));
     if (res.data.code === '200') {
-      activities.value = res.data.data;
+      registrations.value = res.data.data;
+
+      // 获取每个报名记录对应的活动详情
+      if (registrations.value.length > 0) {
+        const activityDetailsPromises = registrations.value.map(reg =>
+            getActivityDetails(reg.activityId)
+        );
+        const activityDetailsResponses = await Promise.all(activityDetailsPromises);
+
+        activities.value = activityDetailsResponses
+            .filter(res => res.data.code === '200' && res.data.data)
+            .map(res => res.data.data);
+      } else {
+        activities.value = [];
+      }
     } else {
       ElMessage.error(res.data.message);
-      error.value = '获取活动列表失败';
+      error.value = '获取报名列表失败';
     }
   } catch (err) {
-    ElMessage.error('获取活动列表失败');
+    ElMessage.error('获取报名列表失败');
     error.value = '网络请求失败';
   } finally {
     isLoading.value = false;
   }
 };
 
-// 搜索活动
-const handleSearch = async () => {
-  isLoading.value = true;
-  error.value = null;
-  if (searchKeyword.value.trim() === '') {
-    await fetchActivities();
-    return;
-  }
+const handleCancelRegistration = async (registrationId: number, activityName: string) => {
   try {
-    const res = await searchActivities(searchKeyword.value);
-    if (res.data.code === '200' && res.data.data) {
-      activities.value = res.data.data;
+    await ElMessageBox.confirm(
+        `确定要取消报名活动 "${activityName}" 吗？`,
+        '提示',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }
+    );
+
+    const res = await cancelRegistration(registrationId);
+    if (res.data.code === '200') {
+      ElMessage.success('取消报名成功！');
+      // 从列表中移除已取消的活动
+      await fetchMyActivities();
     } else {
-      activities.value = [];
-      ElMessage.warning('未找到相关活动');
+      ElMessage.error(res.data.message);
     }
   } catch (err) {
-    ElMessage.error('搜索活动失败');
-    error.value = '搜索活动失败';
-  } finally {
-    isLoading.value = false;
+    if (err !== 'cancel') {
+      ElMessage.error('取消报名失败，请稍后再试');
+    }
   }
 };
 
-// 跳转到活动详情页
-const goToActivityDetail = (activityId: number) => {
-  // 假设活动详情页的路由是 '/activity/:id'
-  router.push({ name: 'activity-detail', params: { id: activityId } });
-};
-
-// 格式化日期时间
 const formatDateTime = (dateTimeString: string): string => {
   if (!dateTimeString) return '时间未知';
   const date = new Date(dateTimeString);
   return date.toLocaleString();
 };
 
+const getRegistrationId = (activityId: number): number | undefined => {
+  const registration = registrations.value.find(reg => reg.activityId === activityId);
+  return registration?.id;
+};
+
 onMounted(() => {
-  fetchActivities();
+  fetchMyActivities();
 });
 </script>
 
 <template>
   <div class="page-container">
     <div class="page-card">
-      <h2 class="card-title">最近的活动</h2>
-      <div class="header-actions">
-        <el-input
-            v-model="searchKeyword"
-            placeholder="搜索活动名称或描述"
-            class="search-input"
-            @keyup.enter="handleSearch"
-        >
-          <template #append>
-            <el-button :icon="Search" @click="handleSearch" />
-          </template>
-        </el-input>
-      </div>
+      <h2 class="card-title">我的活动</h2>
 
       <div v-if="isLoading" class="loading">
         <el-skeleton animated />
@@ -102,7 +126,6 @@ onMounted(() => {
             :key="activity.id"
             class="activity-card"
             shadow="hover"
-            @click="goToActivityDetail(activity.id)"
         >
           <template #header>
             <div class="card-header">
@@ -123,10 +146,19 @@ onMounted(() => {
               <span><el-icon><User /></el-icon> 人数: {{ activity.currentParticipants }} / {{ activity.capacity }}</span>
             </div>
           </div>
+          <div class="card-actions">
+            <el-button
+                type="danger"
+                :disabled="activity.status === '已结束'"
+                @click="handleCancelRegistration(getRegistrationId(activity.id)!, activity.name)"
+            >
+              取消报名
+            </el-button>
+          </div>
         </el-card>
       </div>
       <div v-else class="no-data-message">
-        <el-empty description="暂无活动数据" />
+        <el-empty description="您还没有报名任何活动" />
       </div>
     </div>
   </div>
@@ -164,19 +196,6 @@ onMounted(() => {
   font-weight: 600;
 }
 
-/* 搜索和操作按钮的样式 */
-.header-actions {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 30px;
-}
-
-.search-input {
-  max-width: 500px;
-  width: 100%;
-}
-
 /* 活动卡片列表样式 */
 .activity-grid {
   display: grid;
@@ -185,7 +204,6 @@ onMounted(() => {
 }
 
 .activity-card {
-  cursor: pointer;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -233,7 +251,11 @@ onMounted(() => {
   gap: 5px;
 }
 
-/* 状态和空数据提示 */
+.card-actions {
+  margin-top: 20px;
+  text-align: right;
+}
+
 .loading,
 .error-message,
 .no-data-message {

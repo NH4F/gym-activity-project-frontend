@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { login } from '@/api/user';
+import {getUser, login} from '@/api/user';
 
 const router = useRouter();
 
@@ -16,8 +16,11 @@ const handleLogin = async () => {
     const res = await login(form.value.username, form.value.password);
     if (res.data.code === '200') {
       sessionStorage.setItem('token', res.data.data);
-      sessionStorage.setItem('username', form.value.username);
       alert('登录成功');
+      const resUser = await getUser(form.value.username);
+      sessionStorage.setItem('role', resUser.data.data.role || '');
+      sessionStorage.setItem('username', resUser.data.data.username || '');
+      sessionStorage.setItem('userId', resUser.data.data.id.toString() || '');
       await router.push('/');
     } else {
       alert(res.data.message);

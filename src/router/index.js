@@ -1,8 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import HomePage from '../pages/home.vue'
-import LoginPage from '../pages/User/login.vue'
-import RegisterPage from '../pages/User/register.vue'
-import UserProfilePage from '../pages/User/userInfo.vue'
+import HomePage from '../pages/home.vue';
+import LoginPage from '../pages/User/login.vue';
+import RegisterPage from '../pages/User/register.vue';
+import UserProfilePage from '../pages/User/userInfo.vue';
+import ManageActivityPage from '../pages/Activity/manageActivity.vue';
+import ActivityDetailPage from '../pages/Activity/activityDetail.vue';
+import MyActivityPage from '../pages/Activity/myActivity.vue';
 
 const routes = [
     {
@@ -11,7 +14,7 @@ const routes = [
     },
     {
         path: '/home',
-        name: 'index',
+        name: 'home',
         component: HomePage,
         meta: {
             showNav: true,
@@ -44,12 +47,40 @@ const routes = [
         meta: {
             showNav: true,
             title: '个人信息',
-            requiresAuth: true,
-            // 假设管理员页面需要管理员权限
-            // requiresAdmin: true
+            requiresAuth: true
         }
     },
-    // 其他路由配置
+    {
+        path: '/manageActivity',
+        name: 'manage-activity',
+        component: ManageActivityPage,
+        meta: {
+            showNav: true,
+            title: '活动管理',
+            requiresAuth: true,
+            requiresAdmin: true
+        }
+    },
+    {
+        path: '/activity/:id',
+        name: 'activity-detail',
+        component: ActivityDetailPage,
+        meta: {
+            showNav: true,
+            title: '活动详情',
+            requiresAuth: true
+        }
+    },
+    {
+        path: '/myActivity',
+        name: 'my-activity',
+        component: MyActivityPage,
+        meta: {
+            showNav: true,
+            title: '我的活动',
+            requiresAuth: true
+        }
+    }
 ];
 
 const router = createRouter({
@@ -58,32 +89,24 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-    const isAuthenticated = sessionStorage.getItem('token');
-    const role = sessionStorage.getItem('role');
-
-    // 1. 检查是否需要登录
-    if (to.meta.requiresAuth && !isAuthenticated) {
-        console.warn('未登录，重定向到登录页');
-        next({ name: 'login' });
-        return; // 终止后续操作
+    if (to.meta.requiresAdmin) {
+        const role = sessionStorage.getItem('role');
+        if (role === 'admin') {
+            next();
+        } else {
+            alert('您没有权限访问此页面');
+            next(from.path);
+        }
+    } else if (to.meta.requiresAuth) {
+        const isAuthenticated = sessionStorage.getItem('token');
+        if (isAuthenticated) {
+            next();
+        } else {
+            next({ name: 'login' });
+        }
+    } else {
+        next();
     }
-
-    // 2. 检查是否需要管理员权限
-    if (to.meta.requiresAdmin && role !== 'admin') {
-        console.warn('无管理员权限，重定向到首页');
-        alert('您没有权限访问此页面');
-        next({ name: 'index' });
-        return; // 终止后续操作
-    }
-
-    // 3. 如果已登录，且访问的是登录或注册页，则重定向到首页
-    if (isAuthenticated && (to.name === 'login' || to.name === 'register')) {
-        next({ name: 'index' });
-        return; // 终止后续操作
-    }
-
-    // 4. 其他情况，正常放行
-    next();
 });
 
 export default router;
