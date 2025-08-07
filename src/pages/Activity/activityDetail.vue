@@ -5,6 +5,7 @@ import { getActivityDetails, ActivityVO } from '@/api/activity';
 import { registerActivity } from '@/api/registration'; // 👈 新增：引入报名API
 import { ElMessage, ElIcon, ElMessageBox } from 'element-plus';
 import { Location, Calendar, Money, User, Back } from '@element-plus/icons-vue';
+import Comment from '@/pages/Comment/comment.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -180,7 +181,11 @@ onMounted(() => {
             {{ activity.status !== '未开始' ? '活动已开始' : (activity.currentParticipants >= activity.capacity ? '已满员' : '立即报名') }}
           </el-button>
         </div>
+        <div class="comment-section-wrapper">
+          <Comment :activityId="activity.id" />
+        </div>
       </div>
+
       <div v-else class="no-data-message">
         <el-empty description="未找到活动详情" />
       </div>
